@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ToDoWorkApp",
+    "name": "To Do Work App",
     "slug": "ToDoWorkApp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -27,6 +27,8 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "description": "",
+    "githubUrl": "https://github.com/znehraks/reactnative-todoapp2021"
   }
 }

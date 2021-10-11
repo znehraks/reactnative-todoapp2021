@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -13,7 +13,7 @@ import {
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Fontisto } from "@expo/vector-icons";
+import { Fontisto, Foundation } from "@expo/vector-icons";
 import { theme } from "./color";
 
 const STORAGE_KEY = "@toDos";
@@ -23,12 +23,15 @@ export default function App() {
   const [working, setWorking] = useState(true);
   const [text, setText] = useState("");
   const [toDos, setToDos] = useState({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [selected, setSelected] = useState("");
+  const editInput = useRef();
 
   useEffect(() => {
     loadToDos();
     loadPrevious();
     console.log(toDos);
-  }, []);
+  }, [isEditing]);
 
   const travel = async () => {
     setWorking(false);
@@ -96,6 +99,14 @@ export default function App() {
     setToDos(newToDos);
     await saveToDos(newToDos);
   };
+  const editToDo = async (key, text) => {
+    const newToDos = { ...toDos };
+    newToDos[key].text = text;
+    setToDos(newToDos);
+    setText("");
+    await saveToDos(newToDos);
+    await setIsEditing(false);
+  };
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
@@ -125,64 +136,108 @@ export default function App() {
           <Text style={styles.btnText}>Travel</Text>
         </Pressable> */}
       </View>
-      <TextInput
-        onSubmitEditing={addToDo}
-        returnKeyType="done"
-        // secureTextEntry=flase
-        // keyboardType="number-pad"
-        // multiline
-        // placeholderTextColor="red"
-        // autoCorrect
-        // autoCapitalize={"sentences"}
-        onChangeText={onChangeText}
-        value={text}
-        placeholder={working ? "Add a To Do" : "Where do you want to go?"}
-        style={styles.input}
-      />
-      <ScrollView>
-        {Object.keys(toDos).map((key) =>
-          toDos[key].working === working ? (
-            <View style={styles.toDo} key={key}>
-              <View style={styles.CheckTextView}>
-                <TouchableOpacity
-                  style={{ marginRight: 10 }}
-                  onPress={() => finishToDo(key)}
-                >
-                  <Fontisto
-                    name={
+      {isEditing ? (
+        <Text
+          style={{ fontSize: 40, color: "white", marginTop: 20, padding: 10 }}
+        >
+          Now Editing...
+        </Text>
+      ) : (
+        <TextInput
+          ref={editInput}
+          onSubmitEditing={addToDo}
+          returnKeyType="done"
+          onChangeText={onChangeText}
+          value={text}
+          style={styles.input}
+        />
+      )}
+      {isEditing ? (
+        <View style={styles.toDo} key={selected}>
+          <View style={styles.rowView}>
+            <TextInput
+              onSubmitEditing={() => editToDo(selected, text)}
+              returnKeyType="done"
+              // secureTextEntry=flase
+              // keyboardType="number-pad"
+              // multiline
+              // placeholderTextColor="red"
+              // autoCorrect
+              // autoCapitalize={"sentences"}
+              autoFocus
+              onChangeText={onChangeText}
+              value={text}
+              style={{ fontSize: 18, borderBottomColor: "white" }}
+            ></TextInput>
+          </View>
+          <View>
+            <TouchableOpacity onPress={() => editToDo(selected, text)}>
+              <Text style={{ fontWeight: "600", fontSize: 20 }}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <ScrollView>
+          {Object.keys(toDos).map((key) =>
+            toDos[key].working === working ? (
+              <View style={styles.toDo} key={key}>
+                <View style={styles.rowView}>
+                  <TouchableOpacity
+                    style={{ marginRight: 10 }}
+                    onPress={() => finishToDo(key)}
+                  >
+                    <Fontisto
+                      name={
+                        toDos[key].finished
+                          ? "checkbox-active"
+                          : "checkbox-passive"
+                      }
+                      size={18}
+                      color="black"
+                    />
+                  </TouchableOpacity>
+                  <Text
+                    style={
                       toDos[key].finished
-                        ? "checkbox-active"
-                        : "checkbox-passive"
+                        ? styles.toDoTextFinished
+                        : styles.toDoText
                     }
-                    size={18}
-                    color="black"
-                  />
-                </TouchableOpacity>
-                <Text
-                  style={
-                    toDos[key].finished
-                      ? styles.toDoTextFinished
-                      : styles.toDoText
-                  }
-                >
-                  {toDos[key].text}
-                </Text>
+                  >
+                    {toDos[key].text}
+                  </Text>
+                </View>
+                <View style={styles.rowView}>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      setIsEditing(true);
+                      setSelected(key);
+                      setText(toDos[key].text);
+                    }}
+                  >
+                    <Foundation
+                      name="pencil"
+                      size={22}
+                      color={theme.gray}
+                      finished={toDos[key].finished}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ marginLeft: 15 }}
+                    onPress={() => deleteToDo(key)}
+                  >
+                    <Fontisto
+                      name="trash"
+                      size={18}
+                      color={theme.gray}
+                      finished={toDos[key].finished}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <TouchableOpacity
-                style={{ marginLeft: 20 }}
-                onPress={() => deleteToDo(key)}
-              >
-                <Fontisto
-                  name="trash"
-                  size={18}
-                  color={theme.gray}
-                  finished={toDos[key].finished}
-                />
-              </TouchableOpacity>
-            </View>
-          ) : null
-        )}
-      </ScrollView>
+            ) : null
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -221,7 +276,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  CheckTextView: {
+  rowView: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
